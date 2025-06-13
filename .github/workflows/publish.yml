@@ -1,0 +1,35 @@
+name: Publish to GitHub Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com/
+          scope: '@giovannimirulla'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Publish package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PAT }}
+        run: npm publish
