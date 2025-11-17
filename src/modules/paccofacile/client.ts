@@ -28,12 +28,12 @@ export class PaccoFacileClient {
                         `HTTP Error: ${resp.status} - ${resp.statusText}`
                     );
                 }
-    
+
                 const contentType = resp.headers.get("content-type");
                 if (!contentType?.includes("application/json")) {
                     return resp.text();
                 }
-    
+
                 return resp.json();
             })
             .then((resp) => {
@@ -43,7 +43,7 @@ export class PaccoFacileClient {
                         `An error occurred while sending a request to ShipStation: ${resp.errors.map((error) => error.message)}`
                     );
                 }
-    
+
                 return resp;
             });
     }
@@ -107,5 +107,22 @@ export class PaccoFacileClient {
             return response.data;
         }
         return null;
+    }
+
+    async getSettings(name: string): Promise<any> {
+        const response = await fetch(`${this.options.backend_url}/admin/paccofacile/settings/${name}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            credentials: "include", // if session authentication is required
+        })
+        if (!response.ok) {
+            throw new MedusaError(
+                MedusaError.Types.INVALID_DATA,
+                "Failed to fetch PaccoFacile settings"
+            )
+        }
+        return response.json()
     }
 }

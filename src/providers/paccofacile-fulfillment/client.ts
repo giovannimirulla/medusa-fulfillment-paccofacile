@@ -2,6 +2,10 @@ import { PaccoFacileOptions } from "./service"
 import { MedusaError } from "@medusajs/framework/utils"
 import { QuoteRequest, ShippingRequest, AddressBookItem, Carrier, Account } from "./types"
 
+/**
+ * Client for interacting with PaccoFacile API.
+ * Handles authentication, request formatting, and response parsing.
+ */
 export class PaccoFacileClient {
     options: PaccoFacileOptions
 
@@ -10,8 +14,6 @@ export class PaccoFacileClient {
     }
 
     private async sendRequest(url: string, data?: RequestInit): Promise<any> {
-        console.log("sendRequest", url, data)
-        console.log("paccofacile options", this.options)
         return fetch(`https://paccofacile.tecnosogima.cloud/sandbox/v1${url}`, {
             ...data,
             headers: {
@@ -24,8 +26,6 @@ export class PaccoFacileClient {
         })
             .then((resp) => {
                 if (!resp.ok) {
-                    console.error(`HTTP Error: ${resp.status} - ${resp.statusText}`);
-                    console.error("Response body:", resp);
                     throw new MedusaError(
                         MedusaError.Types.INVALID_DATA,
                         `HTTP Error: ${resp.status} - ${resp.statusText}`
@@ -51,6 +51,10 @@ export class PaccoFacileClient {
             });
     }
 
+    /**
+     * Retrieves available carriers and their services from PaccoFacile.
+     * @returns Promise resolving to array of carriers with service details
+     */
     async getCarriers(): Promise<Carrier[]> {
         const response = await this.sendRequest("/service/carriers")
         if (response.data && response.data.length > 0) {
@@ -59,6 +63,10 @@ export class PaccoFacileClient {
         return [];
     }
 
+    /**
+     * Retrieves the user's address book from PaccoFacile.
+     * @returns Promise resolving to array of saved addresses
+     */
     async getAddresses(): Promise<AddressBookItem[]> {
         const response = await this.sendRequest("/service/address-book");
         if (response.data && response.data.items && response.data.items.length > 0) {
@@ -67,6 +75,11 @@ export class PaccoFacileClient {
         return [];
     }
 
+    /**
+     * Requests shipping quotes from PaccoFacile for given shipment details.
+     * @param data - Quote request with parcels, addresses, and package content type
+     * @returns Promise resolving to quote response with available services and pricing
+     */
     async getQuotes(data: QuoteRequest): Promise<any> {
         return await this.sendRequest("/service/shipment/quote", {
             method: "POST",
@@ -77,6 +90,11 @@ export class PaccoFacileClient {
         })
     }
 
+    /**
+     * Creates a shipment in PaccoFacile system.
+     * @param data - Shipping request with service, parcels, addresses, and additional info
+     * @returns Promise resolving to shipment creation response with shipment_id
+     */
     async createShipment(data: ShippingRequest): Promise<any> {
         const response = await this.sendRequest("/service/shipment/save", {
             method: "POST",
@@ -85,11 +103,33 @@ export class PaccoFacileClient {
                 "Content-Type": "application/json",
             },
         })
-        console.log("createShipment response", response)
         return response
     }
 
-    //service/customers/account
+    /**
+     * Purchases one or more shipments using account credit.
+     * @param data - Purchase request with shipment IDs, billing type, date, and payment method
+     * @param data.shipments - Array of shipment IDs to purchase
+     * @param data.billing_type - 1: Receipt, 2: Invoice
+     * @param data.billing_date - "1": Monthly, "2": Single
+     * @param data.payment_method - "CREDIT": Pay with account credit
+     * @returns Promise resolving to purchase confirmation
+     */
+   async buyShipment(data: { shipments: number[], billing_type: number, billing_date: string, payment_method: string }): Promise<any> {
+        const response = await this.sendRequest("/service/shipment/buy", {
+            method: "POST",
+            body: JSON.stringify(data),
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+        return response
+    }
+
+    /**
+     * Retrieves account information for the authenticated user.
+     * @returns Promise resolving to account details or null if not found
+     */
     async getAccount(): Promise<Account | null> {
         const response = await this.sendRequest("/service/customers/account", {
             method: "GET",
@@ -101,6 +141,25 @@ export class PaccoFacileClient {
             return response.data.customer;
         }
         return null;
+    }
+
+    /**
+     * Retrieve shipment documents (labels, customs docs, etc.)
+     * GET /service/shipment/document/{shipment_id}
+     * Returns: { content: string (base64), format: string, label: string }
+     */
+    async getShipmentDocuments(shipmentId: number): Promise<any[]> {
+        const response = await this.sendRequest(`/service/shipment/document/${shipmentId}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+        // API returns array of documents with content, format, label fields
+        if (response.data && Array.isArray(response.data)) {
+            return response.data;
+        }
+        return [];
     }
 
 }

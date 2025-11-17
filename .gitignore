@@ -23,5 +23,9 @@ build
 !.yarn/sdks
 !.yarn/versions
 
+# Bun
+bun.lockb
+.bun
+
 .medusa
 *lock*

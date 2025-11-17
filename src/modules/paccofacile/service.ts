@@ -7,6 +7,7 @@ export type PaccoFacileOptions = {
     api_key: string,
     api_token: string,
     account_number: string
+    backend_url?: string
 }
 
 class PaccoFacileModuleService extends MedusaService({PaccoFacileSettings}) {

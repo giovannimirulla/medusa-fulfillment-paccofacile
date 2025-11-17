@@ -1,12 +1,15 @@
-import { AbstractFulfillmentProviderService } from "@medusajs/framework/utils"
+import { AbstractFulfillmentProviderService, MedusaError } from "@medusajs/framework/utils"
 import { PaccoFacileClient } from "./client"
 import {
     FulfillmentOption,
     CreateShippingOptionDTO,
     CalculateShippingOptionPriceDTO,
-    CalculatedShippingOptionPrice
+    CalculatedShippingOptionPrice,
+    Logger
 } from "@medusajs/framework/types"
 import { Address, DetailedAddress, ShippingRequest, Product } from "./types"
+
+import { retrievePaccoFacileSettingsWorkflow } from "../../workflows/retrieve-paccofacile-setting"
 
 function calculatePackageDimensions(products: Product[]): { length: number; width: number; height: number; weight: number } {
     // Ordina i prodotti per volume decrescente
@@ -44,24 +47,30 @@ export type PaccoFacileOptions = {
     api_key: string,
     api_token: string,
     account_number: string
+    backend_url?: string
 }
 
 class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
     static identifier = "paccofacile"
     protected options_: PaccoFacileOptions
     protected client: PaccoFacileClient
+    protected logger_: Logger
 
 
     constructor(
-        { },
+        { logger },
         options: PaccoFacileOptions
     ) {
         super()
         this.options_ = options
         this.client = new PaccoFacileClient(options)
+        this.logger_ = logger
     }
 
-
+    /**
+     * Retrieves available fulfillment options from PaccoFacile carriers.
+     * @returns Promise resolving to array of fulfillment options with carrier and service details
+     */
     async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
         const data = await this.client.getCarriers()
 
@@ -84,7 +93,12 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
         return fulfillmentOptions
     }
 
-    //create a function to return pickup, triangulation and destination address
+    /**
+     * Resolves pickup, triangulation, and destination addresses for a shipment.
+     * Uses default addresses from PaccoFacile account or context-provided location.
+     * @param context - Context containing from_location, shipping_address, and customer info
+     * @returns Promise resolving to pickup, triangulation, and destination addresses
+     */
     async getAddresses(context: any): Promise<{ pickup: DetailedAddress; triangulation: DetailedAddress; destination: DetailedAddress }> {
         let pickup: DetailedAddress
         let triangulation: DetailedAddress
@@ -115,7 +129,10 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
                 (data) => data.address.category === "DEPARTURE-DEFAULT"
             )?.address
             if (!sender_address) {
-                throw new Error("Default sender address not found")
+                throw new MedusaError(
+                    MedusaError.Types.INVALID_DATA,
+                    "Default sender address not found"
+                )
             }
             pickup = {
                 iso_code: sender_address.locality.iso_code,
@@ -168,8 +185,12 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
 
     }
 
+    /**
+     * Determines if shipping price can be calculated for the given data.
+     * @param data - Shipping option creation data
+     * @returns Promise resolving to true (always calculable for PaccoFacile)
+     */
     async canCalculate(data: CreateShippingOptionDTO): Promise<boolean> {
-        console.log("canCalculate", data)
         return true
     }
 
@@ -248,15 +269,28 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
         const quotes = await this.getQuotes(context)
         const services = quotes.data.services_available
         if (!services.length) {
-            throw new Error("No shipping services available")
+            throw new MedusaError(
+                MedusaError.Types.INVALID_DATA,
+                "No shipping services available"
+            )
         }
         const selectedService = services.find((service) => service.service_id === service_id)
         if (!selectedService) {
-            throw new Error("Selected service not found")
+            throw new MedusaError(
+                MedusaError.Types.INVALID_DATA,
+                "Selected service not found"
+            )
         }
         return selectedService
     }
 
+    /**
+     * Calculates shipping price for the selected service option.
+     * @param optionData - Contains service_id for the selected carrier service
+     * @param data - Additional shipping data
+     * @param context - Cart/order context with items and addresses
+     * @returns Promise resolving to calculated price and tax inclusivity
+     */
     async calculatePrice(
         optionData: CalculateShippingOptionPriceDTO["optionData"],
         data: CalculateShippingOptionPriceDTO["data"],
@@ -385,6 +419,13 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
 
     }
 
+    /**
+     * Validates fulfillment data and enriches it with quote, addresses, and service details.
+     * @param optionData - Contains service_id for the selected carrier service
+     * @param data - Additional validation data
+     * @param context - Cart/order context with items and addresses
+     * @returns Promise resolving to validated data with quote, pickup, triangulation, and destination
+     */
     async validateFulfillmentData(
         optionData: Record<string, unknown>,
         data: Record<string, unknown>,
@@ -395,12 +436,6 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
         }
         const { pickup, triangulation, destination } = await this.getAddresses(context)
 
-        console.log("validateFulfillmentData optionData", optionData)
-        console.log("validateFulfillmentData data", data)
-        console.log("validateFulfillmentData context", context)
-        console.log("validateFulfillmentData pickup", pickup)
-        console.log("validateFulfillmentData triangulation", triangulation)
-        console.log("validateFulfillmentData destination", destination)
         //        "pickup" : {
         //  "header_name" : "John Doe" ,
         //  "address" : "Street address...",
@@ -619,6 +654,14 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
         };
     }
 
+    /**
+     * Creates a shipment with PaccoFacile and optionally purchases it if autopayment is enabled.
+     * @param data - Validated fulfillment data with quote, addresses, and service details
+     * @param items - Fulfillment items to be shipped
+     * @param order - Order context (optional)
+     * @param fulfillment - Fulfillment record with scope and metadata
+     * @returns Promise resolving to fulfillment data with paccofacile_shipment_id
+     */
     async createFulfillment(
         data: object,
         items: object[],
@@ -627,7 +670,7 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
     ): Promise<any> {
 
 
-      
+
 
         // {
         //     "shipment_service": {
@@ -710,10 +753,6 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
         //       "note": "",
         //       "content": ""
         //     },
-        console.log("CreateFulfillment data", data)
-        console.log("CreateFulfillment items", items)
-        console.log("CreateFulfillment order", order)
-        console.log("CreateFulfillment fulfillment", fulfillment)
         // Data {
         // id: '92_7',
         // tax: {
@@ -963,21 +1002,54 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
 
         }
 
-        console.log("ShippingRequest", shippingRequest)
+        this.logger_.info(`[PaccoFacile] Creating shipment with service_id: ${(data as any).quote.service_id}`)
 
-        this.client.createShipment(shippingRequest).then((response) => {
-            console.log("Response", response)
+        let responseShipment;
+        try {
+            responseShipment = await this.client.createShipment(shippingRequest);
+        } catch (error) {
+            this.logger_.error(`[PaccoFacile] Error creating shipment: ${error && (error as any).message ? (error as any).message : "unknown error"}`)
+            throw new MedusaError(
+                MedusaError.Types.UNEXPECTED_STATE,
+                `Error creating shipment: ${error && (error as any).message ? (error as any).message : "unknown error"}`
+            )
         }
-        ).catch((error) => {
-            console.log("Error", error)
+
+
+
+
+        //get autopayment setting
+        const autopayment = await this.getSetting("autoPayment", fulfillment.scope)
+        this.logger_.info(`[PaccoFacile] Autopayment setting retrieved: ${autopayment?.value}`)
+
+        // Check if autopayment is enabled and shipment was created successfully
+        if (autopayment && autopayment.value === "true" && responseShipment && responseShipment.data && responseShipment.data.shipment && responseShipment.data.shipment.shipment_id) {
+            this.logger_.info(`[PaccoFacile] Autopayment is enabled, attempting to purchase shipment: ${responseShipment.data.shipment.shipment_id}`)
+            try {
+                const buyResponse = await this.client.buyShipment({
+                    shipments: [responseShipment.data.shipment.shipment_id],
+                    billing_type: 2,
+                    billing_date: "1",
+                    payment_method: "CREDIT",
+                })
+                this.logger_.info(`[PaccoFacile] Shipment purchased successfully: ${responseShipment.data.shipment.shipment_id}`)
+            } catch (error) {
+                this.logger_.error(`[PaccoFacile] Error purchasing shipment: ${error && (error as any).message ? (error as any).message : "unknown error"}`)
+                // Don't throw error to prevent fulfillment creation from failing
+            }
+        } else {
+            this.logger_.info(`[PaccoFacile] Autopayment not executed - Autopayment enabled: ${autopayment?.value === "true"}, Shipment created: ${!!responseShipment?.data?.shipment?.shipment_id}`)
         }
-        )
+
+
 
 
         return {
             data: {
                 ...(fulfillment.data as object || {}),
-
+                ...(responseShipment?.data?.shipment?.shipment_id
+                    ? { paccofacile_shipment_id: responseShipment.data.shipment.shipment_id }
+                    : {}),
             },
         }
 
@@ -986,6 +1058,102 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
 
 
 
+    }
+
+    /**
+     * Retrieves a specific setting value from the PaccoFacile module.
+     * @param name - Setting name to retrieve
+     * @param scope - Workflow execution scope
+     * @returns Promise resolving to setting object with name and value
+     */
+    async getSetting(name: string, scope: any) {
+        const { result } = await retrievePaccoFacileSettingsWorkflow(scope).run({
+            input: { name },
+            throwOnError: false,
+            logOnError: true,
+        })
+        return result
+    }
+
+    /**
+     * Legacy method required by base class. Returns empty array.
+     * Use retrieveDocuments instead for actual document retrieval.
+     * @param data - Fulfillment data
+     * @returns Empty array
+     */
+    async getShipmentDocuments(data: any): Promise<never[]> {
+        // This method signature requires Promise<never[]> from base class
+        // Use retrieveDocuments instead for actual document retrieval
+        return []
+    }
+
+    /**
+     * Retrieves shipment documents (labels, customs docs) from PaccoFacile.
+     * @param fulfillmentData - Must contain paccofacile_shipment_id
+     * @param documentType - Optional filter: LABEL_LDV, DOCUMENTAZIONE_DOGANALE, 
+     *                       DICHIARAZIONE_LIBERA_ESPORTAZIONE, FATTURA_PRO_FORMA, MODELLO_CN23
+     * @returns Promise resolving to array of documents with content (base64), format, and label
+     * @throws MedusaError if shipment_id is missing or retrieval fails
+     */
+    async retrieveDocuments(
+        fulfillmentData: any,
+        documentType: any
+    ): Promise<any> {
+        const shipmentId = fulfillmentData?.paccofacile_shipment_id
+        if (!shipmentId) {
+            throw new MedusaError(
+                MedusaError.Types.INVALID_DATA,
+                "Missing paccofacile_shipment_id in fulfillment data. Ensure the fulfillment was created successfully."
+            )
+        }
+
+        try {
+            const documents = await this.client.getShipmentDocuments(shipmentId)
+            
+            // Filter by documentType if specified
+            // documentType can be: LABEL_LDV, DOCUMENTAZIONE_DOGANALE, DICHIARAZIONE_LIBERA_ESPORTAZIONE, 
+            // FATTURA_PRO_FORMA, MODELLO_CN23
+            if (documentType) {
+                const filtered = documents.filter(doc => doc.label === documentType)
+                return filtered.length > 0 ? filtered : documents
+            }
+            
+            return documents
+        } catch (error) {
+            throw new MedusaError(
+                MedusaError.Types.UNEXPECTED_STATE,
+                `Failed to retrieve documents for shipment ${shipmentId}: ${error && (error as any).message ? (error as any).message : "unknown error"}`
+            )
+        }
+    }
+
+    /**
+     * Cancels a fulfillment logically in Medusa. 
+     * Note: PaccoFacile API does not currently provide a remote cancellation endpoint,
+     * so this performs a local cancel only. Manual follow-up may be required.
+     * @param fulfillmentData - Fulfillment data, may contain paccofacile_shipment_id
+     * @returns Promise resolving to updated fulfillment data with canceled_at timestamp
+     * @throws MedusaError if cancellation fails
+     */
+    async cancelFulfillment(
+        fulfillmentData: Record<string, unknown>
+    ): Promise<{ data: Record<string, unknown> }> {
+        try {
+            const shipmentId = (fulfillmentData as any)?.paccofacile_shipment_id
+            return {
+                data: {
+                    ...fulfillmentData,
+                    paccofacile_shipment_id: shipmentId,
+                    canceled_at: new Date().toISOString(),
+                    cancel_reason: "canceled via Medusa",
+                },
+            }
+        } catch (e) {
+            throw new MedusaError(
+                MedusaError.Types.UNEXPECTED_STATE,
+                `Failed to cancel fulfillment: ${e && (e as any).message ? (e as any).message : "unknown error"}`
+            )
+        }
     }
 }
 
