@@ -56,7 +56,7 @@ const FulfillmentProvidersPage = () => {
         // Fetch PaccoFacile account details
         const fetchAccountDetails = async () => {
             try {
-                const response = await sdk.client.fetch(`/paccofacile/account`)
+                const response = await sdk.client.fetch(`/admin/paccofacile/account`)
                 const data = await response.json()
                 setAccountDetails(data)
             } catch (error) {
@@ -68,7 +68,7 @@ const FulfillmentProvidersPage = () => {
 
         const fetchCredit = async () => {
             try {
-                const response = await sdk.client.fetch(`/paccofacile/credit`)
+                const response = await sdk.client.fetch(`/admin/paccofacile/credit`)
                 const data = await response.json()
                 setCredit(data)
             } catch (error) {
@@ -78,7 +78,7 @@ const FulfillmentProvidersPage = () => {
 
         const loadSetting = async (settingName: string): Promise<string | undefined> => {
             try {
-                const res = await sdk.client.fetch(`/paccofacile/settings/${settingName}`)
+                const res = await sdk.client.fetch(`/admin/paccofacile/settings/${settingName}`)
             if (!res.ok) {
                 throw new Error("Failed to fetch setting")
             }
@@ -119,7 +119,7 @@ const FulfillmentProvidersPage = () => {
                 value: settingValue
             }
 
-            await sdk.client.fetch(`/paccofacile/settings/${settingName}`, {
+            await sdk.client.fetch(`/admin/paccofacile/settings/${settingName}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
