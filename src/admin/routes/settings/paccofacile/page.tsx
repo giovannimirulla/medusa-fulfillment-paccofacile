@@ -56,8 +56,7 @@ const FulfillmentProvidersPage = () => {
         // Fetch PaccoFacile account details
         const fetchAccountDetails = async () => {
             try {
-                const response = await sdk.client.fetch(`/admin/paccofacile/account`)
-                const data = await response.json()
+                const data = await sdk.client.fetch(`/admin/paccofacile/account`) as PaccoFacileAccount
                 setAccountDetails(data)
             } catch (error) {
                 console.error("Failed to fetch PaccoFacile account details:", error)
@@ -68,8 +67,7 @@ const FulfillmentProvidersPage = () => {
 
         const fetchCredit = async () => {
             try {
-                const response = await sdk.client.fetch(`/admin/paccofacile/credit`)
-                const data = await response.json()
+                const data = await sdk.client.fetch(`/admin/paccofacile/credit`) as PaccoFacileCredit
                 setCredit(data)
             } catch (error) {
                 console.error("Failed to fetch PaccoFacile credit details:", error)
@@ -78,18 +76,14 @@ const FulfillmentProvidersPage = () => {
 
         const loadSetting = async (settingName: string): Promise<string | undefined> => {
             try {
-                const res = await sdk.client.fetch(`/admin/paccofacile/settings/${settingName}`)
-            if (!res.ok) {
-                throw new Error("Failed to fetch setting")
-            }
-            const data: CustomSettingResponse = await res.json()
-            if (data && data.value) {
-                return data.value
-            }
-            throw new Error("Setting not found")
+                const data: CustomSettingResponse = await sdk.client.fetch(`/admin/paccofacile/settings/${settingName}`)
+                if (data && data.value) {
+                    return data.value
+                }
+                throw new Error("Setting not found")
             } catch (error: unknown) {
-            console.error(`Failed to load setting ${settingName}:`, error)
-            return undefined
+                console.error(`Failed to load setting ${settingName}:`, error)
+                return undefined
             }
         }
 
@@ -107,18 +101,9 @@ const FulfillmentProvidersPage = () => {
     }, [])
 
 
-
-    interface SettingPayload {
-        value: string
-    }
-
     const saveSetting = async (settingName: string, settingValue: string): Promise<void> => {
 
         try {
-            const payload: SettingPayload = {
-                value: settingValue
-            }
-
             await sdk.client.fetch(`/admin/paccofacile/settings/${settingName}`, {
                 method: "POST",
                 headers: {
