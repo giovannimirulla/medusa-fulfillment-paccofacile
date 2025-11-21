@@ -1,7 +1,7 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { Container, Heading, Text, Switch, useToggleState } from "@medusajs/ui"
 import { useState, useEffect } from "react"
-import { sdk } from "../../../lib/sdk"
+import { sdk, getBackendUrl } from "../../../lib/sdk"
 import { useQuery } from "@tanstack/react-query"
 
 interface PaccoFacileAccount {
@@ -56,7 +56,7 @@ const FulfillmentProvidersPage = () => {
         // Fetch PaccoFacile account details
         const fetchAccountDetails = async () => {
             try {
-                const response = await sdk.client.fetch(`/paccofacile/account`)
+                const response = await sdk.client.fetch(getBackendUrl(`/paccofacile/account`))
                 const data = await response.json()
                 setAccountDetails(data)
             } catch (error) {
@@ -68,7 +68,7 @@ const FulfillmentProvidersPage = () => {
 
         const fetchCredit = async () => {
             try {
-                const response = await sdk.client.fetch(`/paccofacile/credit`)
+                const response = await sdk.client.fetch(getBackendUrl(`/paccofacile/credit`))
                 const data = await response.json()
                 setCredit(data)
             } catch (error) {
@@ -78,7 +78,7 @@ const FulfillmentProvidersPage = () => {
 
         const loadSetting = async (settingName: string): Promise<string | undefined> => {
             try {
-            const res = await sdk.client.fetch(`/paccofacile/settings/${settingName}`)
+                const res = await sdk.client.fetch(getBackendUrl(`/paccofacile/settings/${settingName}`))
             if (!res.ok) {
                 throw new Error("Failed to fetch setting")
             }
@@ -119,12 +119,12 @@ const FulfillmentProvidersPage = () => {
                 value: settingValue
             }
 
-            await sdk.client.fetch(`/paccofacile/settings/${settingName}`, {
+            await sdk.client.fetch(getBackendUrl(`/paccofacile/settings/${settingName}`), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({ value: settingValue }),
             })
         } catch (error: unknown) {
             console.error(`Failed to save setting ${settingName}:`, error)
