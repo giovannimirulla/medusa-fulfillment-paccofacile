@@ -1,7 +1,7 @@
 // src/api/admin/pacco-facile/settings/route.ts
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { retrievePaccoFacileSettingsWorkflow } from "../../../../../../workflows/retrieve-paccofacile-setting"
-import { updatePaccoFacileSettingsWorkflow } from "../../../../../../workflows/update-paccofacile-settings"
+import { retrievePaccoFacileSettingsWorkflow } from "../../../../../workflows/retrieve-paccofacile-setting"
+import { updatePaccoFacileSettingsWorkflow } from "../../../../../workflows/update-paccofacile-settings"
 
 import { z } from "zod"
 import { PaccoFacileSettings } from "./validators"
