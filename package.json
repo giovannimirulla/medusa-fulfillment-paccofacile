@@ -1,6 +1,6 @@
 {
   "name": "@giovannimirulla/medusa-fulfillment-paccofacile",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Medusa fulfillment provider plugin for PaccoFacile shipping service",
   "author": "Giovanni Mirulla (https://giovannimirulla.com)",
   "license": "MIT",
