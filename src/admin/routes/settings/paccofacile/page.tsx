@@ -1,5 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Container, Heading, Text, Switch, useToggleState } from "@medusajs/ui"
+import { Container, Heading, Text, Switch } from "@medusajs/ui"
 import { useState, useEffect } from "react"
 import { sdk } from "../../../lib/sdk"
 import { useQuery } from "@tanstack/react-query"
@@ -49,10 +49,7 @@ const FulfillmentProvidersPage = () => {
 
 
     useEffect(() => {
-        interface CustomSettingResponse {
-            name: string
-            value: string
-        }
+        // Rimosso CustomSettingResponse inutilizzato: la risposta viene tipizzata inline
         // Fetch PaccoFacile account details
         const fetchAccountDetails = async () => {
             try {
@@ -74,45 +71,32 @@ const FulfillmentProvidersPage = () => {
             }
         }
 
-        const loadSetting = async (settingName: string): Promise<string | undefined> => {
+        const fetchSettings = async () => {
             try {
-                const data: CustomSettingResponse = await sdk.client.fetch(`/admin/paccofacile/settings/${settingName}`)
-                if (data && data.value) {
-                    return data.value
+                const data = await sdk.client.fetch(`/admin/paccofacile/settings`) as { auto_payment: boolean }
+                if (data && typeof data.auto_payment === "boolean") {
+                    setAutoPayment(data.auto_payment)
                 }
-                throw new Error("Setting not found")
-            } catch (error: unknown) {
-                console.error(`Failed to load setting ${settingName}:`, error)
-                return undefined
+            } catch (e) {
+                console.error("Failed to fetch PaccoFacile settings", e)
             }
         }
 
         fetchAccountDetails()
         fetchCredit()
-        loadSetting("autoPayment").then((settingValue) => {
-            if (settingValue) {
-                setAutoPayment(settingValue === "true")
-            }
-        }
-        ).catch((error) => {
-            console.error("Error loading setting:", error)
-        }
-        )
+        fetchSettings()
     }, [])
 
 
-    const saveSetting = async (settingName: string, settingValue: string): Promise<void> => {
-
+    const saveSettings = async (nextAutoPayment: boolean) => {
         try {
-            await sdk.client.fetch(`/admin/paccofacile/settings/${settingName}`, {
+            await sdk.client.fetch(`/admin/paccofacile/settings`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ value: settingValue }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ auto_payment: nextAutoPayment }),
             })
-        } catch (error: unknown) {
-            console.error(`Failed to save setting ${settingName}:`, error)
+        } catch (e) {
+            console.error("Failed to save PaccoFacile settings", e)
         }
     }
 
@@ -203,9 +187,8 @@ const FulfillmentProvidersPage = () => {
                         </Text>
                         <Switch checked={autoPayment} onCheckedChange={(checked) => {
                             setAutoPayment(checked)
-                            saveSetting("autoPayment", checked.toString())
-                        }
-                        } />
+                            saveSettings(checked)
+                        }} />
                     </div>
                 </>
             )}

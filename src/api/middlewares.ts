@@ -5,7 +5,7 @@ import {
   authenticate,
 } from "@medusajs/framework/http"
 import { PaccoFacileQuoteRequest } from "./paccofacile/quote/validators"
-import { PaccoFacileSettings } from "./admin/paccofacile/settings/[name]/validators"
+import { PostPaccofacileSettings } from "./admin/paccofacile/settings/validator"
 
 export default defineMiddlewares({
   routes: [
@@ -16,12 +16,20 @@ export default defineMiddlewares({
         validateAndTransformBody(PaccoFacileQuoteRequest),
       ],
     },
+    // Admin settings unified endpoint
     {
-      matcher: "/admin/paccofacile/settings/:name",
+      matcher: "/admin/paccofacile/settings",
+      method: "GET",
+      middlewares: [
+        authenticate("user", ["session", "bearer", "api-key"], { allowUnregistered: false }),
+      ],
+    },
+    {
+      matcher: "/admin/paccofacile/settings",
       method: "POST",
       middlewares: [
         authenticate("user", ["session", "bearer", "api-key"], { allowUnregistered: false }),
-        validateAndTransformBody(PaccoFacileSettings),
+        validateAndTransformBody(PostPaccofacileSettings),
       ],
     },
     {
@@ -33,13 +41,6 @@ export default defineMiddlewares({
     },
     {
       matcher: "/admin/paccofacile/credit",
-      method: "GET",
-      middlewares: [
-        authenticate("user", ["session", "bearer", "api-key"], { allowUnregistered: false }),
-      ],
-    },
-    {
-      matcher: "/admin/paccofacile/settings/:name",
       method: "GET",
       middlewares: [
         authenticate("user", ["session", "bearer", "api-key"], { allowUnregistered: false }),
