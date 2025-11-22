@@ -1,4 +1,3 @@
-import { MedusaService } from "@medusajs/framework/utils"
 import { Account, Credit } from "./types"
 import { PaccoFacileClient } from "./client"
 
@@ -13,12 +12,11 @@ export type PaccoFacileOptions = {
  * Provides admin API methods for account and credit information.
  * This is separate from the fulfillment provider service.
  */
-class PaccoFacileModuleService extends MedusaService({}) {
+class PaccoFacileModuleService {
     protected options_: PaccoFacileOptions
     protected client: PaccoFacileClient
 
-    constructor({}, options: PaccoFacileOptions) {
-        super(...arguments)
+    constructor(container: any, options: PaccoFacileOptions) {
         this.options_ = options
         this.client = new PaccoFacileClient(options)
     }
