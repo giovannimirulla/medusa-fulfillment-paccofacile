@@ -3,6 +3,8 @@ import { PostPaccofacileSettingsType } from "./validator"
 import getPaccofacileSettingsWorkflow from "../../../../workflows/get-paccofacile-settings"
 import setupPaccofacileSettingsWorkflow from "../../../../workflows/setup-paccofacile-settings"
 
+export const AUTHENTICATE = true
+
 // GET /admin/paccofacile/settings
 export const GET = async (req: MedusaRequest, res: MedusaResponse<{ auto_payment: boolean }>) => {
   try {
@@ -32,5 +34,3 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse<{ success: bo
     return res.status(500).json({ success: false, input: req.body as any, errors: ["Internal Server Error"] })
   }
 }
-
-export const AUTHENTICATE = true

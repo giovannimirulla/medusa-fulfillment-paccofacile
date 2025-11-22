@@ -1,5 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
+export const AUTHENTICATE = true
+
 export const GET = async (
   req: MedusaRequest,
   res: MedusaResponse
