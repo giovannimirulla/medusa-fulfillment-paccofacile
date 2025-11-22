@@ -93,7 +93,7 @@ const FulfillmentProvidersPage = () => {
             await sdk.client.fetch(`/admin/paccofacile/settings`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ auto_payment: nextAutoPayment }),
+                body: { auto_payment: nextAutoPayment },
             })
         } catch (e) {
             console.error("Failed to save PaccoFacile settings", e)
