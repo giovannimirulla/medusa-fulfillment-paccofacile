@@ -7,8 +7,18 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   try {
-    // Access the provider service directly from container
-    const providerService = req.scope.resolve("pp_paccofacile") as { getCredit: () => Promise<any> }
+    // Try different provider resolution names
+    let providerService
+    try {
+      providerService = req.scope.resolve("pp_paccofacile_paccofacile")
+    } catch {
+      try {
+        providerService = req.scope.resolve("pp_paccofacile")
+      } catch {
+        providerService = req.scope.resolve("fp_paccofacile")
+      }
+    }
+    
     const creditData = await providerService.getCredit()
     return res.json(creditData)
   } catch (error) {
