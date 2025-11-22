@@ -7,18 +7,10 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   try {
-    // Try different provider resolution names
-    let providerService
-    try {
-      providerService = req.scope.resolve("pp_paccofacile_paccofacile")
-    } catch {
-      try {
-        providerService = req.scope.resolve("pp_paccofacile")
-      } catch {
-        providerService = req.scope.resolve("fp_paccofacile")
-      }
-    }
-    
+    // Provider ID format: fp_{identifier}_{id}
+    // identifier = "paccofacile" (from service.ts static identifier)
+    // id = "paccofacile" (from medusa-config.ts)
+    const providerService = req.scope.resolve("fp_paccofacile_paccofacile") as { getAccount: () => Promise<any> }
     const accountData = await providerService.getAccount()
     return res.json(accountData)
   } catch (error) {
