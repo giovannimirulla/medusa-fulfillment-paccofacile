@@ -7,11 +7,9 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   try {
-    // Provider ID format: fp_{identifier}_{id}
-    // identifier = "paccofacile" (from service.ts static identifier)
-    // id = "paccofacile" (from medusa-config.ts)
-    const providerService = req.scope.resolve("fp_paccofacile_paccofacile") as { getCredit: () => Promise<any> }
-    const creditData = await providerService.getCredit()
+    // Resolve the paccofacile module service (not fulfillment provider)
+    const paccoFacileService = req.scope.resolve("paccofacile") as { getCredit: () => Promise<any> }
+    const creditData = await paccoFacileService.getCredit()
     return res.json(creditData)
   } catch (error) {
     return res.status(500).json({

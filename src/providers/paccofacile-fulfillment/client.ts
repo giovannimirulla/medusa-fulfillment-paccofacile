@@ -144,6 +144,23 @@ export class PaccoFacileClient {
     }
 
     /**
+     * Retrieves credit information for the authenticated user.
+     * @returns Promise resolving to credit details or null if not found
+     */
+    async getCredit(): Promise<any | null> {
+        const response = await this.sendRequest("/service/customers/credit", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+        if (response.data) {
+            return response.data;
+        }
+        return null;
+    }
+
+    /**
      * Retrieve shipment documents (labels, customs docs, etc.)
      * GET /service/shipment/document/{shipment_id}
      * Returns: { content: string (base64), format: string, label: string }
