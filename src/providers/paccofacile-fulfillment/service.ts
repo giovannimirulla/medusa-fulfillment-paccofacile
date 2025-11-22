@@ -8,8 +8,7 @@ import {
     Logger
 } from "@medusajs/framework/types"
 import { Address, DetailedAddress, ShippingRequest, Product } from "./types"
-
-import { retrievePaccoFacileSettingsWorkflow } from "../../workflows/retrieve-paccofacile-setting"
+import getPaccofacileSettingsWorkflow from "../../workflows/get-paccofacile-settings"
 
 function calculatePackageDimensions(products: Product[]): { length: number; width: number; height: number; weight: number } {
     // Ordina i prodotti per volume decrescente
@@ -1019,11 +1018,12 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
 
 
         //get autopayment setting
-        const autopayment = await this.getSetting("autoPayment", fulfillment.scope)
-        this.logger_.info(`[PaccoFacile] Autopayment setting retrieved: ${autopayment?.value}`)
+        const settings = await this.getSettings(fulfillment.scope)
+        const autopaymentEnabled = settings?.auto_payment || false
+        this.logger_.info(`[PaccoFacile] Autopayment setting retrieved: ${autopaymentEnabled}`)
 
         // Check if autopayment is enabled and shipment was created successfully
-        if (autopayment && autopayment.value === "true" && responseShipment && responseShipment.data && responseShipment.data.shipment && responseShipment.data.shipment.shipment_id) {
+        if (autopaymentEnabled && responseShipment && responseShipment.data && responseShipment.data.shipment && responseShipment.data.shipment.shipment_id) {
             this.logger_.info(`[PaccoFacile] Autopayment is enabled, attempting to purchase shipment: ${responseShipment.data.shipment.shipment_id}`)
             try {
                 const buyResponse = await this.client.buyShipment({
@@ -1038,7 +1038,7 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
                 // Don't throw error to prevent fulfillment creation from failing
             }
         } else {
-            this.logger_.info(`[PaccoFacile] Autopayment not executed - Autopayment enabled: ${autopayment?.value === "true"}, Shipment created: ${!!responseShipment?.data?.shipment?.shipment_id}`)
+            this.logger_.info(`[PaccoFacile] Autopayment not executed - Autopayment enabled: ${autopaymentEnabled}, Shipment created: ${!!responseShipment?.data?.shipment?.shipment_id}`)
         }
 
 
@@ -1061,14 +1061,13 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
     }
 
     /**
-     * Retrieves a specific setting value from the PaccoFacile module.
-     * @param name - Setting name to retrieve
+     * Get settings from database using new unified workflow
      * @param scope - Workflow execution scope
-     * @returns Promise resolving to setting object with name and value
+     * @returns Promise resolving to settings object with auto_payment field
      */
-    async getSetting(name: string, scope: any) {
-        const { result } = await retrievePaccoFacileSettingsWorkflow(scope).run({
-            input: { name },
+    async getSettings(scope: any) {
+        const { result } = await getPaccofacileSettingsWorkflow().run({
+            input: {},
             throwOnError: false,
             logOnError: true,
         })
