@@ -1,39 +1,23 @@
-# NPM Ignore - Override .gitignore for publishing
-# Include .medusa directory in published package (required for plugin to work)
+# NPM Ignore - Include only necessary files for published package
 
-# Ignore source files (not needed in published package)
-src/
-tsconfig.json
+# Ignore everything by default
+*
 
-# Ignore dev files
-.env
-.env.*
+# Then explicitly include what we need
+!.medusa/
+!.medusa/server/
+!.medusa/server/**
+!package.json
+!README.md
+!LICENSE
+
+# Ignore specific patterns even if matched above
+.env*
 !.env.example
 !.env.template
-.DS_Store
-.idea
-coverage
-yarn-error.log
-medusa-db.sql
-.cache
-bun.lockb
-.bun
-
-# Ignore security files
 *.pem
 *.key
 *.crt
 *.cert
 *.pfx
 *.p12
-
-# Ignore development artifacts
-dist/
-build/
-node_modules/
-uploads/
-
-# Include these in the package:
-!.medusa/server/**
-!package.json
-!README.md
