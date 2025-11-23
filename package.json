@@ -1,6 +1,6 @@
 {
   "name": "@giovannimirulla/medusa-fulfillment-paccofacile",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "Medusa fulfillment provider plugin for PaccoFacile shipping service",
   "author": "Giovanni Mirulla (https://giovannimirulla.com)",
   "license": "MIT",
@@ -56,6 +56,8 @@
   "devDependencies": {
     "@medusajs/admin-sdk": "2.11.3",
     "@medusajs/cli": "2.11.3",
+    "@medusajs/medusa": "2.11.3",
+    "@medusajs/test-utils": "2.11.3",
     "@medusajs/icons": "2.11.3",
     "@medusajs/ui": "4.0.4",
     "@mikro-orm/cli": "6.4.3",
@@ -75,6 +77,8 @@
     "@medusajs/admin-sdk": "2.11.3",
     "@medusajs/cli": "2.11.3",
     "@medusajs/framework": "2.11.3",
+    "@medusajs/medusa": "2.11.3",
+    "@medusajs/test-utils": "2.11.3",
     "@medusajs/icons": "2.11.3",
     "@medusajs/ui": "4.0.4",
     "@mikro-orm/cli": "6.4.3",
