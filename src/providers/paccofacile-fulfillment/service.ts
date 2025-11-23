@@ -1025,7 +1025,23 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
         // Check if autopayment is enabled and shipment was created successfully
         if (autopaymentEnabled && responseShipment && responseShipment.data && responseShipment.data.shipment && responseShipment.data.shipment.shipment_id) {
             this.logger_.info(`[PaccoFacile] Autopayment is enabled, attempting to purchase shipment: ${responseShipment.data.shipment.shipment_id}`)
+            
+            // Check credit before attempting purchase
             try {
+                const creditInfo = await this.client.getCredit()
+                const availableCredit = creditInfo ? parseFloat(creditInfo.credit.value) : 0
+                const shipmentCost = responseShipment.data.shipment.price_detail?.total?.amount || 0
+                
+                this.logger_.info(`[PaccoFacile] Credit check - Available: ${availableCredit}, Required: ${shipmentCost}`)
+                
+                if (availableCredit < shipmentCost) {
+                    this.logger_.warn(`[PaccoFacile] Insufficient credit for autopayment. Available: ${availableCredit}, Required: ${shipmentCost}`)
+                    throw new MedusaError(
+                        MedusaError.Types.INVALID_DATA,
+                        `Insufficient credit. Available: ${availableCredit} ${creditInfo?.credit.currency || 'EUR'}, Required: ${shipmentCost}`
+                    )
+                }
+                
                 const buyResponse = await this.client.buyShipment({
                     shipments: [responseShipment.data.shipment.shipment_id],
                     billing_type: 2,
@@ -1036,6 +1052,7 @@ class PaccoFacileProviderService extends AbstractFulfillmentProviderService {
             } catch (error) {
                 this.logger_.error(`[PaccoFacile] Error purchasing shipment: ${error && (error as any).message ? (error as any).message : "unknown error"}`)
                 // Don't throw error to prevent fulfillment creation from failing
+                // The shipment is created but not purchased - admin can purchase manually
             }
         } else {
             this.logger_.info(`[PaccoFacile] Autopayment not executed - Autopayment enabled: ${autopaymentEnabled}, Shipment created: ${!!responseShipment?.data?.shipment?.shipment_id}`)

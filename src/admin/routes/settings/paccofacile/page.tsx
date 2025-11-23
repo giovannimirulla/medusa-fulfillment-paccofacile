@@ -1,5 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Container, Heading, Text, Switch } from "@medusajs/ui"
+import { Container, Heading, Text, Switch, toast, Alert } from "@medusajs/ui"
 import { useState, useEffect } from "react"
 import { sdk } from "../../../lib/sdk"
 import { useQuery } from "@tanstack/react-query"
@@ -95,8 +95,14 @@ const FulfillmentProvidersPage = () => {
                 headers: { "Content-Type": "application/json" },
                 body: { auto_payment: nextAutoPayment },
             })
+            toast.success("Settings saved", {
+                description: `Auto payment ${nextAutoPayment ? "enabled" : "disabled"} successfully`,
+            })
         } catch (e) {
             console.error("Failed to save PaccoFacile settings", e)
+            toast.error("Failed to save settings", {
+                description: "Please try again later",
+            })
         }
     }
 
@@ -117,6 +123,18 @@ const FulfillmentProvidersPage = () => {
                 </div>
             ) : (
                 <>
+                    {credit && parseFloat(credit.credit.value) < 50 && (
+                        <div className="px-6 py-4">
+                            <Alert variant="warning">
+                                <Text size="small" weight="plus">Low Credit Balance</Text>
+                                <Text size="small" className="mt-2">
+                                    Your PaccoFacile credit is low ({formatPrice(parseFloat(credit.credit.value), credit.credit.currency)}). 
+                                    {autoPayment && " Auto payment may fail if credit is insufficient."} 
+                                    Please recharge your account.
+                                </Text>
+                            </Alert>
+                        </div>
+                    )}
                     {accountDetails && accountDetails.customer_id && <div className="text-ui-fg-subtle grid grid-cols-2 items-center px-6 py-4">
                         <Text size="small" leading="compact" weight="plus">
                             Customer ID
