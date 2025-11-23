@@ -39,6 +39,20 @@ jobs:
       - name: Build plugin
         run: bun run build
 
+      - name: Verify build output (BEFORE publish)
+        run: |
+          echo "=== Checking .medusa directory ==="
+          ls -la .medusa/server/src/admin/ || echo "Admin directory not found!"
+          echo "=== Checking .gitignore ==="
+          cat .gitignore | grep medusa
+          echo "=== Checking package.json files field ==="
+          cat package.json | grep -A 2 '"files"'
+          echo "=== Files that will be published ==="
+          npm pack --dry-run 2>&1 | grep -E "(medusa|admin)"
+          echo "=== Creating actual tarball to verify ==="
+          npm pack
+          tar -tzf *.tgz | grep -E "admin" || echo "NO ADMIN FILES IN TARBALL!"
+
       - name: Publish to GitHub Packages
         run: npm publish
         env:
