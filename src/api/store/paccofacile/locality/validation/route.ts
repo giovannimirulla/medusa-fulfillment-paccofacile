@@ -81,8 +81,23 @@ export const POST = async (
 
     const data = await response.json()
     
-    // PaccoFacile might return a single object or an array
-    const localities: LocalityResponse[] = Array.isArray(data) ? data : [data]
+    // PaccoFacile returns: { header: {...}, data: { items: [...] } }
+    // We need to extract the items array from the nested structure
+    let localities: LocalityResponse[] = []
+    
+    if (Array.isArray(data)) {
+      // Response is an array of objects with header/data structure
+      localities = data.flatMap(item => item?.data?.items || [])
+    } else if (data?.data?.items) {
+      // Single response with header/data structure
+      localities = data.data.items
+    } else if (Array.isArray(data.items)) {
+      // Direct items array
+      localities = data.items
+    } else {
+      // Fallback: treat data as single locality
+      localities = [data]
+    }
 
     res.json({
       localities,
