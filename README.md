@@ -23,6 +23,7 @@ A Medusa v2 fulfillment provider plugin that integrates with PaccoFacile shippin
 - 📍 **Tracking** - Track shipments and update order status
 - ⚙️ **Admin UI** - Built-in admin widgets for managing shipments
 - 🔧 **Configurable** - Flexible configuration for different shipping scenarios
+- 🌍 **Address Autocomplete** - Store API endpoint for validating and searching Italian localities
 
 ## Prerequisites
 
@@ -122,6 +123,40 @@ The plugin includes admin widgets for:
 ## API Documentation
 
 For detailed PaccoFacile API specifications, see the [API documentation](./docs/paccofacile-api.md).
+
+### Store API Endpoints
+
+The plugin exposes the following store API endpoints for storefront integration:
+
+#### Address Locality Validation
+
+**Endpoint**: `POST /store/paccofacile/locality/validation`
+
+Validates and searches for Italian localities to provide autocomplete functionality in checkout forms.
+
+**Request Body**:
+```json
+{
+  "iso_code": "IT",
+  "search": "Milan"
+}
+```
+
+**Response**:
+```json
+{
+  "localities": [
+    {
+      "cap": "20121",
+      "locality": "Milano",
+      "StateOrProvinceCode": "MI",
+      "iso_code": "IT"
+    }
+  ]
+}
+```
+
+See [full API documentation](./src/api/store/paccofacile/locality/validation/README.md) for more details.
 
 ## Development
 
