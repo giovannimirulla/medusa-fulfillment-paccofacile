@@ -4,7 +4,8 @@ import { Account, Credit } from "./types"
 export type PaccoFacileOptions = {
     api_key: string,
     api_token: string,
-    account_number: string
+    account_number: string,
+    environment?: "sandbox" | "live"
 }
 
 /**
@@ -19,7 +20,8 @@ export class PaccoFacileClient {
     }
 
     private async sendRequest(url: string, data?: RequestInit): Promise<any> {
-        return fetch(`https://paccofacile.tecnosogima.cloud/sandbox/v1${url}`, {
+        const env = this.options.environment || "live"
+        return fetch(`https://paccofacile.tecnosogima.cloud/${env}/v1${url}`, {
             ...data,
             headers: {
                 ...data?.headers,

@@ -4,7 +4,8 @@ import { PaccoFacileClient } from "./client"
 export type PaccoFacileOptions = {
     api_key: string,
     api_token: string,
-    account_number: string
+    account_number: string,
+    environment?: "sandbox" | "live"
 }
 
 /**
