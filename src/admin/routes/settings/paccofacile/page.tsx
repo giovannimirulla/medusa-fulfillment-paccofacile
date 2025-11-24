@@ -125,14 +125,18 @@ const FulfillmentProvidersPage = () => {
                 <>
                     {credit && parseFloat(credit.credit.value) < 50 && (
                         <div className="px-6 py-4">
-                            <Alert variant="warning">
-                                <Text size="small" weight="plus">Low Credit Balance</Text>
-                                <Text size="small" className="mt-2">
-                                    Your PaccoFacile credit is low ({formatPrice(parseFloat(credit.credit.value), credit.credit.currency)}). 
-                                    {autoPayment && " Auto payment may fail if credit is insufficient."} 
-                                    Please recharge your account.
-                                </Text>
-                            </Alert>
+                            {isLoadingCurrencies ? (
+                                <Text size="small">Loading credit information...</Text>
+                            ) : (
+                                <Alert variant="warning">
+                                    <Text size="small" weight="plus">Low Credit Balance</Text>
+                                    <Text size="small" className="mt-2">
+                                        Your PaccoFacile credit is low ({formatPrice(parseFloat(credit.credit.value), credit.credit.currency)}).
+                                        {autoPayment && " Auto payment may fail if credit is insufficient."}
+                                        {" "}Please recharge your account.
+                                    </Text>
+                                </Alert>
+                            )}
                         </div>
                     )}
                     {accountDetails && accountDetails.customer_id && <div className="text-ui-fg-subtle grid grid-cols-2 items-center px-6 py-4">

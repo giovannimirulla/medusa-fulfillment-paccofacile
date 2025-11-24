@@ -14,7 +14,8 @@ export class PaccoFacileClient {
     }
 
     private async sendRequest(url: string, data?: RequestInit): Promise<any> {
-        return fetch(`https://paccofacile.tecnosogima.cloud/sandbox/v1${url}`, {
+        const env = this.options.environment || "live"
+        return fetch(`https://paccofacile.tecnosogima.cloud/${env}/v1${url}`, {
             ...data,
             headers: {
                 ...data?.headers,
